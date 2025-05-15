@@ -1,0 +1,28 @@
+#!/bin/bash
+
+while true; do
+	pope=$(curl -s https://www.vatican.va/holy_father/index_sp.htm | grep -oP '<td bgcolor="#F4EDDA"><a href="https://www.vatican.va/content/\K[^/]+(?=/es\.html)' | fzf)
+
+	# Salir si se cancela. 
+	[ -z "$pope" ] && exit 0
+
+	while true; do
+		year=$(curl -s https://www.vatican.va/content/${pope}/es/homilies.index.html | grep -oP '/homilies/\K\d{4}(?=\.index\.html")' | fzf)
+
+		# Volver al listado de papas si se cancela.
+		[ -z "$year" ] && break
+
+		index_url="https://www.vatican.va/content/${pope}/es/homilies/${year}.index.html"
+		base_url="https://www.vatican.va/content/${pope}/es/homilies/${year}/documents"
+
+		selec=$(curl -s "$index_url" \
+		| grep -oP '<h1><a href="\K[^"]+(?=")' \
+		| sed -n 's|.*documents/\(.*\)\.html|\1|p' \
+		| fzf )
+
+		# Volver al listado de años si se cancela.
+		[ -z "$selec" ] && continue
+
+		reader "$base_url/$selec.html" | less -R
+	done
+done
